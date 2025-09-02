@@ -1,0 +1,31 @@
+name: Makefile CI
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: buildpack-deps:bookworm
+
+    steps:
+      - uses: actions/checkout@v4
+    
+      # Installe les dépendances spécifiques pour construire le binaire
+      - name: Install build tools
+        run: |
+          apt-get update
+          apt-get install -y make gcc libmobi-dev
+
+      # Construit le paquet
+      - name: Build binary and Debian package
+        run: |
+          mkdir -p mobilog/usr/bin
+          gcc mobilog.c -o mobilog/usr/bin/mobilog -lmobi
+          dpkg --build mobilog/
+
+      # Publie le paquet dans une Release GitHub
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: github.ref_type == 'tag'
+        with:
+          files: ./*.deb
